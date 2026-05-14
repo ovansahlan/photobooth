@@ -10,8 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "autoprefixer": "^10.5.0",
+    "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^1.16.0",
+    "postcss": "^8.5.14",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.15.1",
+    "tailwindcss": "^4.3.0",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

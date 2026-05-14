@@ -1,122 +1,67 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import Camera from './components/booth/Camera';
+import PhotoStrip from './components/layout/PhotoStrip.jsx'; // IMPORT BARU
+import { useBoothStore } from './store/boothStore';
+import { processThermalImage } from './lib/dither';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const capturedPhotos = useBoothStore((state) => state.capturedPhotos);
+  const resetSession = useBoothStore((state) => state.resetSession);
+  
+  const [thermalPhotos, setThermalPhotos] = useState([]);
+
+  useEffect(() => {
+    const processLastPhoto = async () => {
+      if (capturedPhotos.length > thermalPhotos.length) {
+        const lastPhoto = capturedPhotos[capturedPhotos.length - 1];
+        const thermalResult = await processThermalImage(lastPhoto);
+        setThermalPhotos((prev) => [...prev, thermalResult]);
+      }
+    };
+    processLastPhoto();
+  }, [capturedPhotos, thermalPhotos.length]);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center py-10 px-4 font-sans overflow-auto">
+      
+      {/* Tombol Reset Global (hanya muncul jika sudah ada foto) */}
+      {capturedPhotos.length > 0 && (
+        <button 
+          onClick={() => {
+            resetSession();
+            setThermalPhotos([]);
+          }}
+          className="absolute top-6 right-6 px-4 py-2 bg-red-900/50 text-white font-mono text-sm border border-red-500 hover:bg-red-900 transition-colors"
         >
-          Count is {count}
+          MULAI ULANG
         </button>
-      </section>
+      )}
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {/* LOGIKA TAMPILAN:
+          Jika foto yang diproses belum 4 -> Tampilkan Kamera
+          Jika foto sudah 4 -> Tampilkan hasil Photo Strip
+      */}
+      {thermalPhotos.length < 4 ? (
+        <div className="w-full flex flex-col items-center">
+          <h1 className="text-[#f0ede8] font-mono text-2xl mb-8 tracking-widest text-center">
+            AMBIL 4 FOTO
+          </h1>
+          <Camera />
+          
+          {/* Progress Bar Sederhana */}
+          <div className="flex gap-2 mt-8">
+            {[1, 2, 3, 4].map((num) => (
+              <div 
+                key={num} 
+                className={`w-12 h-2 ${num <= thermalPhotos.length ? 'bg-[#f0ede8]' : 'bg-[#333]'}`}
+              />
+            ))}
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      ) : (
+        <PhotoStrip photos={thermalPhotos} />
+      )}
+      
+    </div>
+  );
 }
-
-export default App
