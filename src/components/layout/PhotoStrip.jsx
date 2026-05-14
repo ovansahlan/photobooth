@@ -1,7 +1,7 @@
 // src/components/layout/PhotoStrip.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { printViaWebBluetooth } from '../../lib/bluetoothPrint';
+import { printViaWebBluetooth } from '../../lib/bluetoothPrint'; // Import fungsi Bluetooth kita
 
 export default function PhotoStrip({ photos }) {
   const canvasRef = useRef(null);
@@ -10,8 +10,8 @@ export default function PhotoStrip({ photos }) {
   const [stripUrl, setStripUrl] = useState(null);
   const [isCompositing, setIsCompositing] = useState(true);
   
-  // State untuk alur berbagi (Share) dan QR Code
-  const [isUploading, setIsUploading] = useState(false);
+  // State untuk alur berbagi (Share) dan status tombol
+  const [isProcessing, setIsProcessing] = useState(false);
   const [shareUrl, setShareUrl] = useState(null);
 
   useEffect(() => {
@@ -80,16 +80,15 @@ export default function PhotoStrip({ photos }) {
 
   // Fungsi Simulasi Upload ke Cloud
   const handleUpload = () => {
-    setIsUploading(true);
+    setIsProcessing(true);
     setTimeout(() => {
       const dummySessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const mockCloudUrl = `https://photobox-app.vercel.app/s/${dummySessionId}`;
       setShareUrl(mockCloudUrl);
-      setIsUploading(false);
+      setIsProcessing(false);
     }, 2000);
   };
 
-  // Fungsi Cetak Fisik ke Printer Thermal
   // Fungsi Cetak via Web Bluetooth API (Langsung & Seamless)
   const handlePrint = async () => {
     if (!canvasRef.current) return;
@@ -102,7 +101,7 @@ export default function PhotoStrip({ photos }) {
     } catch (err) {
       // Menangkap error jika user membatalkan atau printer tidak ketemu
       if (err.name === 'NotFoundError') {
-         alert("Proses dibatalkan atau printer tidak ditemukan.");
+         alert("Proses dibatalkan atau printer BLE tidak ditemukan. Pastikan printer mendukung Bluetooth Low Energy (BLE).");
       } else {
          alert(`Gagal mencetak: ${err.message}`);
       }
@@ -113,7 +112,7 @@ export default function PhotoStrip({ photos }) {
 
   return (
     <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-4xl gap-12 mt-4">
-      {/* Hidden Canvas untuk proses */}
+      {/* Hidden Canvas untuk proses dan menjadi sumber data Bluetooth */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       {isCompositing ? (
@@ -146,18 +145,19 @@ export default function PhotoStrip({ photos }) {
                 {/* Tombol Share QR */}
                 <button 
                   onClick={handleUpload}
-                  disabled={isUploading}
+                  disabled={isProcessing}
                   className="w-full py-4 border border-[#f0ede8] text-[#f0ede8] font-mono font-bold hover:bg-[#f0ede8] hover:text-[#0a0a0a] active:scale-95 transition-all disabled:opacity-50"
                 >
-                  {isUploading ? 'MENGUNGGAH...' : 'DAPATKAN QR CODE'}
+                  {isProcessing ? 'MEMPROSES...' : 'DAPATKAN QR CODE'}
                 </button>
 
-                {/* Tombol Cetak Fisik */}
+                {/* Tombol Cetak Fisik via Bluetooth */}
                 <button 
                   onClick={handlePrint}
-                  className="w-full py-4 bg-[#f0ede8] text-[#0a0a0a] font-mono font-bold hover:bg-white active:scale-95 transition-all flex items-center justify-center gap-2"
+                  disabled={isProcessing}
+                  className="w-full py-4 bg-[#f0ede8] text-[#0a0a0a] font-mono font-bold hover:bg-white active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  🖨️ CETAK KE PRINTER
+                  {isProcessing ? 'MENGIRIM...' : '🖨️ CETAK VIA BLUETOOTH'}
                 </button>
               </div>
             ) : (
