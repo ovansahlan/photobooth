@@ -9,8 +9,8 @@ export default function PhotoStrip({ photos }) {
   const [stripUrl, setStripUrl] = useState(null);
   const [isCompositing, setIsCompositing] = useState(true);
   
-  // State untuk alur berbagi (Share) dan status tombol
-  const [isProcessing, setIsProcessing] = useState(false);
+  // State untuk alur berbagi (Share) dan QR Code
+  const [isUploading, setIsUploading] = useState(false);
   const [shareUrl, setShareUrl] = useState(null);
 
   useEffect(() => {
@@ -79,38 +79,47 @@ export default function PhotoStrip({ photos }) {
 
   // Fungsi Simulasi Upload ke Cloud
   const handleUpload = () => {
-    setIsProcessing(true);
+    setIsUploading(true);
     setTimeout(() => {
       const dummySessionId = Math.random().toString(36).substring(2, 8).toUpperCase();
       const mockCloudUrl = `https://photobox-app.vercel.app/s/${dummySessionId}`;
       setShareUrl(mockCloudUrl);
-      setIsProcessing(false);
+      setIsUploading(false);
     }, 2000);
   };
 
-  // Fungsi Cetak Langsung (Seamless POS Style untuk Android + RawBT)
+  // Fungsi Cetak Fisik ke Printer Thermal
   const handlePrint = () => {
-    if (!stripUrl) return;
-
-    setIsProcessing(true); 
-
-    setTimeout(() => {
-      try {
-        // 1. Ekstrak data base64 murni (buang tulisan "data:image/png;base64,")
-        const base64Data = stripUrl.split(',')[1];
-
-        // 2. Buat URI Intent khusus sistem Android untuk RawBT
-        const intentUrl = `intent:${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-
-        // 3. Tembakkan Intent! (Ini akan memanggil RawBT di background)
-        window.location.href = intentUrl;
-        
-      } catch (err) {
-        alert("Gagal mencetak. Pastikan aplikasi RawBT terinstal di tablet ini.");
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 500); // Jeda setengah detik biar UI terasa responsif
+    const printWindow = window.open('', '_blank');
+    
+    // Inject HTML khusus untuk printing tanpa margin
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Print Photo Strip</title>
+          <style>
+            @page { margin: 0; } 
+            body { 
+              margin: 0; 
+              display: flex; 
+              justify-content: center; 
+              background-color: white;
+            }
+            img { 
+              width: 100%; 
+              max-width: 576px; 
+              image-rendering: pixelated; 
+              display: block;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${stripUrl}" onload="window.print();" />
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
   };
 
   return (
@@ -148,19 +157,18 @@ export default function PhotoStrip({ photos }) {
                 {/* Tombol Share QR */}
                 <button 
                   onClick={handleUpload}
-                  disabled={isProcessing}
+                  disabled={isUploading}
                   className="w-full py-4 border border-[#f0ede8] text-[#f0ede8] font-mono font-bold hover:bg-[#f0ede8] hover:text-[#0a0a0a] active:scale-95 transition-all disabled:opacity-50"
                 >
-                  {isProcessing ? 'MEMPROSES...' : 'DAPATKAN QR CODE'}
+                  {isUploading ? 'MENGUNGGAH...' : 'DAPATKAN QR CODE'}
                 </button>
 
-                {/* Tombol Cetak Fisik via RawBT */}
+                {/* Tombol Cetak Fisik */}
                 <button 
                   onClick={handlePrint}
-                  disabled={isProcessing}
-                  className="w-full py-4 bg-[#f0ede8] text-[#0a0a0a] font-mono font-bold hover:bg-white active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-4 bg-[#f0ede8] text-[#0a0a0a] font-mono font-bold hover:bg-white active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  {isProcessing ? 'MENGIRIM...' : '🖨️ CETAK KE PRINTER'}
+                  🖨️ CETAK KE PRINTER
                 </button>
               </div>
             ) : (
