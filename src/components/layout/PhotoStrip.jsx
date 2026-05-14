@@ -1,6 +1,7 @@
 // src/components/layout/PhotoStrip.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { printViaWebBluetooth } from '../../lib/bluetoothPrint';
 
 export default function PhotoStrip({ photos }) {
   const canvasRef = useRef(null);
@@ -89,37 +90,25 @@ export default function PhotoStrip({ photos }) {
   };
 
   // Fungsi Cetak Fisik ke Printer Thermal
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
+  // Fungsi Cetak via Web Bluetooth API (Langsung & Seamless)
+  const handlePrint = async () => {
+    if (!canvasRef.current) return;
     
-    // Inject HTML khusus untuk printing tanpa margin
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Photo Strip</title>
-          <style>
-            @page { margin: 0; } 
-            body { 
-              margin: 0; 
-              display: flex; 
-              justify-content: center; 
-              background-color: white;
-            }
-            img { 
-              width: 100%; 
-              max-width: 576px; 
-              image-rendering: pixelated; 
-              display: block;
-            }
-          </style>
-        </head>
-        <body>
-          <img src="${stripUrl}" onload="window.print();" />
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
+    setIsProcessing(true);
+    try {
+      // Kita kirim elemen CANVAS asli kita ke mesin Bluetooth
+      await printViaWebBluetooth(canvasRef.current);
+      alert("Berhasil dicetak!");
+    } catch (err) {
+      // Menangkap error jika user membatalkan atau printer tidak ketemu
+      if (err.name === 'NotFoundError') {
+         alert("Proses dibatalkan atau printer tidak ditemukan.");
+      } else {
+         alert(`Gagal mencetak: ${err.message}`);
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
